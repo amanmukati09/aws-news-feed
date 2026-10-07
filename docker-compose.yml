@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: aws-news-dashboard-backend:latest
+    container_name: aws-news-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    networks:
+      - awsnews
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: aws-news-dashboard-frontend:latest
+    container_name: aws-news-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    networks:
+      - awsnews
+
+networks:
+  awsnews:
+    driver: bridge

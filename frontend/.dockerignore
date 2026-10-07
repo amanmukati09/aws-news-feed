@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+.env
+.env.*
+npm-debug.log*
+yarn-error.log*
+.git
+.gitignore
+README.md
