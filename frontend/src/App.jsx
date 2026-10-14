@@ -416,7 +416,7 @@ export default function App() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 dark:bg-slate-100 dark:text-slate-900"
+          className="fixed bottom-24 left-1/2 z-[60] max-w-[calc(100vw-2rem)] -translate-x-1/2 truncate rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-2xl ring-1 ring-white/10 sm:bottom-6 dark:bg-slate-100 dark:text-slate-900"
         >
           {toast}
         </div>

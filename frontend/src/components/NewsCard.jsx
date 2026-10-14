@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { categoryMeta } from '../lib/categories'
 import { fmtDate, readingTime } from '../lib/format'
 import { Highlight } from '../lib/highlight'
+import { downloadInfographic } from '../api/client'
 
 const SOURCE_AVATAR = {
   'whats-new':    { bg: 'bg-aws-orange',  label: 'W' },
@@ -128,6 +130,14 @@ export default function NewsCard({
 }) {
   const [copied, setCopied] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [pdfState, setPdfState] = useState('idle') // idle | loading | error
+  const navigate = useNavigate()
+
+  function openDetail(e) {
+    // ignore clicks that originate from interactive children
+    if (e.target.closest('a,button')) return
+    navigate(`/news/${item.id}`)
+  }
 
   const meta = categoryMeta(item.category)
   const avatar = SOURCE_AVATAR[item.source] || { bg: 'bg-slate-500', label: (item.source || '?')[0]?.toUpperCase() }
@@ -163,6 +173,21 @@ export default function NewsCard({
     }
   }
 
+  async function handleDownload(e) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (pdfState === 'loading') return
+    setPdfState('loading')
+    try {
+      await downloadInfographic(item)
+      setPdfState('idle')
+    } catch (err) {
+      console.error('infographic download failed', err)
+      setPdfState('error')
+      setTimeout(() => setPdfState('idle'), 2000)
+    }
+  }
+
   async function nativeShare(e) {
     e.preventDefault()
     e.stopPropagation()
@@ -175,8 +200,15 @@ export default function NewsCard({
 
   return (
     <article
+      onClick={openDetail}
+      role="link"
+      tabIndex={0}
+      aria-label={item.title}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.target.closest('a,button')) navigate(`/news/${item.id}`)
+      }}
       className={
-        'group relative overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ' +
+        'group relative cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ' +
         'dark:bg-[#0f172a] ' +
         (fresh
           ? 'border-aws-orange/40 hover:border-aws-orange/70 dark:border-aws-orange/30'
@@ -184,16 +216,6 @@ export default function NewsCard({
         ' ' + (compact ? 'p-3.5' : 'p-5')
       }
     >
-      {/* Whole-card link — bottom layer */}
-      <a
-        href={item.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={item.title}
-        className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-      >
-        <span className="sr-only">{item.title}</span>
-      </a>
 
       {/* Meta row + actions */}
       <div className="relative z-10 flex flex-wrap items-center gap-2 text-xs">
@@ -240,6 +262,35 @@ export default function NewsCard({
 
         {/* Actions: bookmark, share, copy */}
         <div className="relative ml-auto flex items-center gap-0.5 opacity-60 transition group-hover:opacity-100 focus-within:opacity-100">
+          <ActionBtn
+            label={
+              pdfState === 'loading'
+                ? 'Generating infographic…'
+                : pdfState === 'error'
+                ? 'Download failed — retry'
+                : 'Download infographic (PDF)'
+            }
+            onClick={handleDownload}
+            active={pdfState === 'loading'}
+          >
+            {pdfState === 'loading' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            ) : pdfState === 'error' ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-rose-500">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4M12 16h.01" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M12 15V3" />
+              </svg>
+            )}
+          </ActionBtn>
+
           <ActionBtn
             label={bookmarked ? 'Remove bookmark' : 'Add bookmark'}
             active={bookmarked}
@@ -313,13 +364,27 @@ export default function NewsCard({
         </div>
       )}
 
-      {/* Bottom CTA */}
-      <div className={`pointer-events-none relative flex items-center gap-1 font-medium text-brand-600 transition group-hover:text-brand-700 dark:text-brand-300 dark:group-hover:text-brand-200 ${compact ? 'mt-2 text-xs' : 'mt-3 text-sm'}`}>
-        Read on AWS
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform group-hover:translate-x-0.5">
-          <path d="M5 12h14" />
-          <path d="m12 5 7 7-7 7" />
-        </svg>
+      {/* Bottom CTA row: view details (card nav) + read on AWS (external) */}
+      <div className={`relative z-10 flex items-center justify-between gap-2 ${compact ? 'mt-2 text-xs' : 'mt-3 text-sm'}`}>
+        <span className="pointer-events-none flex items-center gap-1 font-medium text-brand-600 transition group-hover:text-brand-700 dark:text-brand-300 dark:group-hover:text-brand-200">
+          View details
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 transition-transform group-hover:translate-x-0.5">
+            <path d="M5 12h14" />
+            <path d="m12 5 7 7-7 7" />
+          </svg>
+        </span>
+        <a
+          href={item.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="pointer-events-auto inline-flex items-center gap-1 text-slate-500 transition hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-300"
+        >
+          Read on AWS
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+            <path d="M7 17 17 7M7 7h10v10" />
+          </svg>
+        </a>
       </div>
     </article>
   )

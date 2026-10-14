@@ -13,7 +13,7 @@ export default function ChatDrawer({ open, onClose }) {
     appendMessage, updateLastAssistant, dropLast, setActiveId,
   } = useChatSessions()
 
-  const { text, sources, toolCalls, reasoning, streaming, error, send, stop } =
+  const { text, sources, toolCalls, reasoning, artifacts, streaming, error, send, stop } =
     useChatStream()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const scrollRef = useRef(null)
@@ -34,9 +34,10 @@ export default function ChatDrawer({ open, onClose }) {
       sources,
       toolCalls,
       reasoning,
+      artifacts,
       streaming: true,
     })
-  }, [activeId, streaming, text, sources, toolCalls, reasoning, updateLastAssistant])
+  }, [activeId, streaming, text, sources, toolCalls, reasoning, artifacts, updateLastAssistant])
 
   // Mark streaming finished
   useEffect(() => {
@@ -54,6 +55,7 @@ export default function ChatDrawer({ open, onClose }) {
     appendMessage(sid, {
       role: 'assistant',
       content: '',
+      question,
       sources: [],
       toolCalls: [],
       reasoning: '',
@@ -81,6 +83,7 @@ export default function ChatDrawer({ open, onClose }) {
     appendMessage(activeId, {
       role: 'assistant',
       content: '',
+      question: lastUser.content,
       sources: [],
       toolCalls: [],
       reasoning: '',

@@ -1,6 +1,21 @@
 import { useCallback, useRef, useState } from 'react'
 
 /**
+ * Defensive strip of chain-of-thought tags that may slip through the token
+ * channel. Removes complete <thinking>…</thinking> blocks and hides a trailing
+ * unclosed opener so partial tags don't flash while streaming.
+ */
+export function stripThinking(s) {
+  if (!s) return s
+  let out = s.replace(/<\s*(thinking|think|reasoning|thought)\s*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+  // drop a trailing, not-yet-closed opener (still streaming)
+  out = out.replace(/<\s*(thinking|think|reasoning|thought)\s*>[\s\S]*$/i, '')
+  // strip any stray standalone tags
+  out = out.replace(/<\s*\/?\s*(thinking|think|reasoning|thought)\s*>/gi, '')
+  return out
+}
+
+/**
  * POST to /api/chat/stream and parse SSE frames.
  * Returns { text, sources, toolCalls, reasoning, streaming, error, send, stop }
  */
@@ -9,6 +24,7 @@ export function useChatStream() {
   const [sources, setSources] = useState([])
   const [toolCalls, setToolCalls] = useState([])
   const [reasoning, setReasoning] = useState('')
+  const [artifacts, setArtifacts] = useState([])
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState(null)
   const abortRef = useRef(null)
@@ -20,7 +36,7 @@ export function useChatStream() {
   }, [])
 
   const send = useCallback(async (question, history = []) => {
-    setText(''); setSources([]); setToolCalls([]); setReasoning(''); setError(null)
+    setText(''); setSources([]); setToolCalls([]); setReasoning(''); setArtifacts([]); setError(null)
     setStreaming(true)
 
     const ctrl = new AbortController()
@@ -63,11 +79,13 @@ export function useChatStream() {
           let payload
           try { payload = JSON.parse(dataLine) } catch { continue }
 
-          if (event === 'token') setText((t) => t + (payload.text || ''))
+          if (event === 'token') setText((t) => stripThinking(t + (payload.text || '')))
           else if (event === 'sources') setSources(payload.sources || [])
           else if (event === 'reasoning') setReasoning((r) => r + (payload.text || ''))
           else if (event === 'tool_call' || event === 'tool_result') {
             setToolCalls((prev) => [...prev, { kind: event, ...payload.tool }])
+          } else if (event === 'artifact') {
+            setArtifacts((prev) => [...prev, payload.artifact])
           } else if (event === 'error') setError(payload.message || 'stream error')
         }
       }
@@ -79,5 +97,5 @@ export function useChatStream() {
     }
   }, [])
 
-  return { text, sources, toolCalls, reasoning, streaming, error, send, stop }
+  return { text, sources, toolCalls, reasoning, artifacts, streaming, error, send, stop }
 }

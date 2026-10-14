@@ -49,6 +49,9 @@ class Config:
     BEDROCK_CHAT_MODEL_ID = os.getenv("BEDROCK_CHAT_MODEL_ID", "amazon.nova-pro-v1:0")
     BEDROCK_SEARCH_MODEL_ID = os.getenv("BEDROCK_SEARCH_MODEL_ID", "amazon.nova-lite-v1:0")
 
+    # ---------- Article scraping ----------
+    ARTICLE_CACHE_TTL_SECONDS = int(os.getenv("ARTICLE_CACHE_TTL_SECONDS", "3600"))
+
     # ---------- Chat tuning ----------
     CHAT_TOP_K = int(os.getenv("CHAT_TOP_K", "6"))
     CHAT_MAX_TOKENS = int(os.getenv("CHAT_MAX_TOKENS", "800"))

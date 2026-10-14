@@ -1,3 +1,4 @@
+import json as _json
 from typing import Any, Dict, List
 
 from llm.base import LLMProvider
@@ -59,3 +60,87 @@ class MockProvider(LLMProvider):
             "provider": self.name,
             "model": self.model,
         }
+
+    # ---------- streaming (simple, no tools) ----------
+    def chat_stream(
+        self,
+        question: str,
+        context_items: List[Dict[str, Any]],
+        history: List[Dict[str, Any]] = None,
+    ):
+        result = self.chat(question, context_items)
+        # Emit the templated answer as a few token chunks.
+        for chunk in result["answer"].split("\n"):
+            yield {"type": "token", "text": chunk + "\n"}
+        yield {"type": "finish", "reason": "stop"}
+
+    # ---------- streaming (agentic, tool-aware) ----------
+    def chat_stream_agentic(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+    ):
+        """Deterministic 2-phase agent emulation.
+
+        Round 1 (no tool results in history yet): emit one search_news
+        tool_call derived from the latest user question so the agent loop
+        exercises the real search path over the feed.
+        Round 2 (tool results present): emit a short grounded answer built
+        from whatever tool results were appended to the conversation.
+        """
+        has_tool_result = any(m.get("role") == "tool" for m in messages)
+
+        # latest user question
+        question = ""
+        for m in reversed(messages):
+            if m.get("role") == "user" and m.get("content"):
+                question = m["content"]
+                break
+
+        if not has_tool_result:
+            # keep only meaningful keywords for the search
+            words = [w for w in question.split() if len(w) > 3][:6]
+            query = " ".join(words) or question[:60]
+            yield {
+                "type": "tool_call",
+                "tool": {
+                    "id": "mock_call_1",
+                    "name": "search_news",
+                    "arguments": {"query": query, "limit": 5},
+                },
+            }
+            yield {"type": "finish", "reason": "tool_calls"}
+            return
+
+        # Round 2 — summarize the tool results we were given.
+        titles: List[str] = []
+        for m in messages:
+            if m.get("role") == "tool" and m.get("content"):
+                try:
+                    data = _json.loads(m["content"])
+                except Exception:
+                    continue
+                for it in (data.get("items") or []):
+                    if it.get("title"):
+                        titles.append(it["title"])
+                one = data.get("item")
+                if isinstance(one, dict) and one.get("title"):
+                    titles.append(one["title"])
+
+        if titles:
+            yield {"type": "token", "text": f"Here are {len(titles)} relevant AWS updates:\n\n"}
+            for i, t in enumerate(titles[:6], 1):
+                yield {"type": "token", "text": f"{i}. {t} [{i}]\n"}
+            yield {
+                "type": "token",
+                "text": (
+                    "\n_(Deterministic mock answer built from tool results. "
+                    "Set LLM_PROVIDER=bedrock or LOCAL_LLM_MODE=groq for a real model.)_"
+                ),
+            }
+        else:
+            yield {
+                "type": "token",
+                "text": "I couldn't find recent AWS news matching that. Try a broader query.",
+            }
+        yield {"type": "finish", "reason": "stop"}

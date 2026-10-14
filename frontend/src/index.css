@@ -18,8 +18,47 @@
 }
 
 html { scroll-behavior: smooth; }
+
+/* ── Theme authority ──────────────────────────────────────
+   Our in-app toggle (the `.dark` class on <html>) is the single source of
+   truth. Declaring color-scheme explicitly per state also stops mobile
+   browsers (notably Chrome Android "Auto Dark Theme") from force-darkening
+   our LIGHT theme, which previously made light mode look muddy blue/brown. */
 html { color-scheme: light; }
 html.dark { color-scheme: dark; }
+
+/* Light theme must stay light even if the OS prefers dark. */
+html:not(.dark),
+html:not(.dark) body {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* ── Mobile hardening ─────────────────────────────────────── */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;            /* kill sideways scroll on small screens */
+  -webkit-text-size-adjust: 100%; /* stop iOS auto-inflating text */
+}
+body {
+  /* respect notches / home indicator */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+* { -webkit-tap-highlight-color: rgba(255, 153, 0, 0.18); }
+
+/* iOS zooms the page when focusing an input under 16px — prevent that. */
+@media (max-width: 640px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
+/* Comfortable touch targets on phones (WCAG 2.5.8 / 44px guidance) */
+@media (pointer: coarse) {
+  button, [role="button"], a.btn { min-height: 36px; }
+}
+
+/* Never let long URLs/titles blow out the layout */
+.break-anywhere { overflow-wrap: anywhere; word-break: break-word; }
 
 html.dark body {
   background-color: #0a0f1e;
@@ -140,3 +179,82 @@ mark {
   border: none; border-top: 1px solid rgba(148, 163, 184, 0.3);
   margin: 0.8em 0;
 }
+
+/* ── Chat markdown: colorful upgrade ─────────────────────── */
+.prose-chat h1, .prose-chat h2, .prose-chat h3, .prose-chat h4 {
+  color: #0f4a83;
+  position: relative;
+  padding-left: 0.6em;
+}
+.dark .prose-chat h1, .dark .prose-chat h2,
+.dark .prose-chat h3, .dark .prose-chat h4 { color: #8fd0ff; }
+.prose-chat h1::before, .prose-chat h2::before,
+.prose-chat h3::before, .prose-chat h4::before {
+  content: "";
+  position: absolute; left: 0; top: 0.15em; bottom: 0.15em;
+  width: 3px; border-radius: 3px;
+  background: linear-gradient(180deg, #ff9900, #ff6a00);
+}
+.prose-chat strong { color: #0f4a83; font-weight: 700; }
+.dark .prose-chat strong { color: #bfe3ff; }
+
+/* colored bullet markers */
+.prose-chat ul { list-style: none; margin-left: 0.2em; }
+.prose-chat ul > li { position: relative; padding-left: 1.25em; }
+.prose-chat ul > li::before {
+  content: "";
+  position: absolute; left: 0.1em; top: 0.55em;
+  width: 7px; height: 7px; border-radius: 999px;
+  background: #ff9900;
+}
+.prose-chat ol { list-style: none; counter-reset: step; margin-left: 0.2em; }
+.prose-chat ol > li { position: relative; padding-left: 1.6em; counter-increment: step; }
+.prose-chat ol > li::before {
+  content: counter(step);
+  position: absolute; left: 0; top: 0.05em;
+  display: inline-grid; place-items: center;
+  width: 1.1em; height: 1.1em; border-radius: 999px;
+  background: rgba(29,127,220,0.15); color: #1560a9;
+  font-size: 0.7em; font-weight: 700;
+}
+.dark .prose-chat ol > li::before { background: rgba(126,197,255,0.18); color: #8fd0ff; }
+
+/* blockquote as a soft callout */
+.prose-chat blockquote {
+  border-left: 4px solid #ff9900;
+  background: rgba(255,153,0,0.08);
+  border-radius: 0 8px 8px 0;
+  padding: 0.5em 0.75em;
+}
+.prose-chat th {
+  background: linear-gradient(180deg, rgba(29,127,220,0.14), rgba(29,127,220,0.06));
+  color: #0f4a83;
+}
+.dark .prose-chat th { color: #8fd0ff; }
+.prose-chat a { color: #1560a9; font-weight: 500; }
+.prose-chat a:hover { color: #ff6a00; }
+
+/* ── Article page prose (detail + AI summary) ────────────── */
+.prose-article h2 {
+  color: #0f4a83; font-weight: 700; font-size: 1.15rem;
+  margin: 1.1em 0 0.4em; padding-left: 0.55em; position: relative;
+}
+.dark .prose-article h2 { color: #8fd0ff; }
+.prose-article h2::before {
+  content: ""; position: absolute; left: 0; top: 0.1em; bottom: 0.1em;
+  width: 4px; border-radius: 4px;
+  background: linear-gradient(180deg, #ff9900, #ff6a00);
+}
+.prose-article h3 { color: #1560a9; font-weight: 600; margin: 0.9em 0 0.3em; }
+.dark .prose-article h3 { color: #7ec5ff; }
+.prose-article strong { color: #0f4a83; font-weight: 700; }
+.dark .prose-article strong { color: #bfe3ff; }
+.prose-article ul { list-style: none; margin: 0.4em 0; }
+.prose-article ul > li { position: relative; padding-left: 1.3em; margin: 0.25em 0; }
+.prose-article ul > li::before {
+  content: ""; position: absolute; left: 0.15em; top: 0.5em;
+  width: 7px; height: 7px; border-radius: 999px; background: #ff9900;
+}
+.prose-article a { color: #1560a9; font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
+.prose-article a:hover { color: #ff6a00; }
+.prose-article p { margin: 0.5em 0; }

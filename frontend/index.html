@@ -3,8 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+
+    <!-- Mobile viewport: respect notches, allow user zoom (a11y) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!--
+      CRITICAL: declaring color-scheme tells the browser this site handles its
+      own light AND dark themes. Without it, Chrome on Android applies
+      "Auto Dark Theme" and force-darkens the page (muddy brown/blue tint)
+      even when our light theme is active.
+    -->
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Browser UI chrome matches the active theme -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0f1e" media="(prefers-color-scheme: dark)" />
+
+    <meta name="description" content="AWS News — a fast, filterable feed of official AWS announcements with an AI assistant that answers from the live feed and exports branded PDFs." />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="AWS News" />
+
+    <title>AWS News · Latest AWS announcements</title>
+
+    <!--
+      Apply the saved theme BEFORE first paint to avoid a flash of the wrong
+      theme (the React hook runs after hydration). Kept tiny and inline.
+    -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('awsnews.theme');
+          var dark = saved === 'dark' ||
+            (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+          var m = document.createElement('meta');
+          m.setAttribute('name', 'theme-color');
+          m.setAttribute('content', dark ? '#0a0f1e' : '#ffffff');
+          document.head.appendChild(m);
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

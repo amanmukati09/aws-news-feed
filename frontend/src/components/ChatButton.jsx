@@ -5,7 +5,7 @@ export default function ChatButton({ onClick, open, unread }) {
       onClick={onClick}
       aria-label={open ? 'Close AI assistant' : 'Open AI assistant'}
       aria-pressed={open}
-      className="fixed bottom-6 left-6 z-40 flex h-12 items-center gap-2 rounded-full bg-gradient-to-br from-aws-orange to-orange-500 px-4 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
+      className="fixed bottom-6 left-4 z-40 sm:left-6 flex h-12 items-center gap-2 rounded-full bg-gradient-to-br from-aws-orange to-orange-500 px-4 text-sm font-semibold text-white shadow-lg shadow-orange-500/30 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
     >
       {open ? (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="h-5 w-5">

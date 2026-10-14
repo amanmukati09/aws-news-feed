@@ -3,8 +3,8 @@ const SUGGESTIONS = [
   { icon: '⚡', label: 'Any recent EC2 announcements?' },
   { icon: '🗄️', label: 'Show me database updates' },
   { icon: '🔐', label: 'What security features launched recently?' },
-  { icon: '🤖', label: 'Summarize this week’s AI/ML releases' },
-  { icon: '💡', label: 'Which service got the most updates?' },
+  { icon: '📄', label: 'Give me a PDF of the top 5 updates with summaries' },
+  { icon: '🗓️', label: 'Create the weekly digest PDF (this week in AWS)' },
 ]
 
 export default function ChatWelcome({ onPick }) {

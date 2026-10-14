@@ -3,6 +3,7 @@ import ChatMarkdown from './ChatMarkdown'
 import SourceCards from './SourceCards'
 import ToolCallCard from './ToolCallCard'
 import ReasoningBlock from './ReasoningBlock'
+import { downloadChatPdf } from '../../api/client'
 
 function Avatar({ role, streaming }) {
   const isUser = role === 'user'
@@ -101,6 +102,7 @@ function ToolGroup({ toolCalls, streaming }) {
 export default function ChatMessage({ message, onRegenerate, onFeedback }) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
+  const [pdfState, setPdfState] = useState('idle')
 
   async function copy() {
     try {
@@ -108,6 +110,22 @@ export default function ChatMessage({ message, onRegenerate, onFeedback }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 1400)
     } catch {}
+  }
+
+  async function downloadPdf() {
+    if (pdfState === 'loading') return
+    setPdfState('loading')
+    try {
+      await downloadChatPdf({
+        question: message.question || 'AWS News question',
+        answer: message.content || '',
+        sources: message.sources || [],
+      })
+      setPdfState('idle')
+    } catch {
+      setPdfState('error')
+      setTimeout(() => setPdfState('idle'), 2000)
+    }
   }
 
   return (
@@ -126,8 +144,8 @@ export default function ChatMessage({ message, onRegenerate, onFeedback }) {
         <div className={
           'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ' +
           (isUser
-            ? 'bg-brand-500 text-white'
-            : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100')
+            ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-sm'
+            : 'border border-slate-200 border-l-4 border-l-aws-orange bg-white text-slate-800 shadow-sm dark:border-slate-700 dark:border-l-aws-orange dark:bg-[#0f172a] dark:text-slate-100')
         }>
           {message.streaming && !message.content && !isUser ? (
             <span className="inline-flex items-center">
@@ -139,6 +157,29 @@ export default function ChatMessage({ message, onRegenerate, onFeedback }) {
             <p className="whitespace-pre-wrap">{message.content}</p>
           ) : (
             <ChatMarkdown>{message.content || ''}</ChatMarkdown>
+          )}
+
+          {!isUser && message.artifacts?.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {message.artifacts.map((a, i) => (
+                <a
+                  key={i}
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2.5 rounded-xl border border-aws-orange/40 bg-gradient-to-r from-orange-50 to-amber-50 px-3 py-2 text-sm font-medium text-slate-800 shadow-sm transition hover:brightness-105 dark:border-aws-orange/30 dark:from-orange-950/30 dark:to-amber-950/20 dark:text-slate-100"
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-aws-orange to-orange-500 text-white">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 15h6M9 18h6" /></svg>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{a.title || a.filename || 'Download PDF'}</span>
+                    <span className="block text-[11px] font-normal text-slate-500 dark:text-slate-400">PDF digest · tap to download</span>
+                  </span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-aws-orange"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                </a>
+              ))}
+            </div>
           )}
 
           {!isUser && message.sources?.length > 0 && !message.streaming && (
@@ -157,6 +198,22 @@ export default function ChatMessage({ message, onRegenerate, onFeedback }) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-3.5 w-3.5">
                   <rect x="9" y="9" width="13" height="13" rx="2" />
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              )}
+            </Action>
+
+            <Action
+              label={pdfState === 'loading' ? 'Generating PDF…' : pdfState === 'error' ? 'PDF failed — retry' : 'Download as PDF'}
+              onClick={downloadPdf}
+            >
+              {pdfState === 'loading' ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 animate-spin">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <path d="M14 2v6h6M9 15h6M9 18h6M9 12h2" />
                 </svg>
               )}
             </Action>

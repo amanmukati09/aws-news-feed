@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 
+const QUICK_ACTIONS = [
+  { icon: '📄', label: 'Top 5 PDF', prompt: 'Give me a PDF of the top 5 updates with their summaries.' },
+  { icon: '🗓️', label: 'Weekly digest', prompt: 'Create the weekly digest PDF — this week in AWS.' },
+  { icon: '⚖️', label: 'Compare', prompt: 'Compare the two most recent Bedrock model launches as a PDF.' },
+  { icon: '🤖', label: 'AI/ML news', prompt: 'What are the latest AI/ML announcements?' },
+  { icon: '⚡', label: 'EC2 / Compute', prompt: 'Any recent EC2 or compute announcements?' },
+  { icon: '🔐', label: 'Security', prompt: 'What security features launched recently?' },
+]
+
 export default function ChatInput({ onSend, onStop, busy, disabled }) {
   const [value, setValue] = useState('')
   const ref = useRef(null)
@@ -24,6 +33,23 @@ export default function ChatInput({ onSend, onStop, busy, disabled }) {
 
   return (
     <div className="border-t border-slate-200 p-3 dark:border-slate-800">
+      {/* Quick actions — one-tap preset prompts (great for demos / managers) */}
+      <div className="mb-2 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {QUICK_ACTIONS.map((a) => (
+          <button
+            key={a.label}
+            type="button"
+            onClick={() => !busy && onSend(a.prompt)}
+            disabled={busy}
+            title={a.prompt}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-aws-orange/50 hover:bg-orange-50 hover:text-orange-700 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-aws-orange/40 dark:hover:bg-orange-950/30"
+          >
+            <span aria-hidden="true">{a.icon}</span>
+            {a.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-end gap-2">
         <textarea
           ref={ref}
